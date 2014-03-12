@@ -1,6 +1,10 @@
 -module(anidb).
 -behaviour(gen_event).
 
+-define(DEFAULT_ARGS, [
+    % TODO
+]).
+
 -export([
   init/1,
   handle_event/2,
@@ -11,7 +15,9 @@
   ]).
 
 init(Args) ->
-  {ok, Args}.
+  Args1 = lists:keysort(1, Args),
+  Args2 = lists:keymerge(1, Args1, ?DEFAULT_ARGS),
+  {ok, Args2}.
 
 handle_event(_Request, State) ->
   {ok, State}.
@@ -22,11 +28,29 @@ handle_call({language, Lang}, State) ->
   {ok, ok, lists:keystore(language, 1, State, {language, Lang})};
 handle_call({key, Key}, State) ->
   {ok, ok, lists:keystore(key, 1, State, {key, Key})};
-handle_call({search, Name, Options}, State) ->
-  lager:info("[anidb] search ~p with ~p", [Name, Options]),
-  {ok, [], State};
+handle_call({search, movie, Data, Options}, State) ->
+  lager:info("[anidb] search movie ~p with ~p", [Data, Options]),
+  {ok, [], State}; % TODO
+handle_call({search, tv, Data, Options}, State) ->
+  lager:info("[anidb] search tv ~p with ~p", [Data, Options]),
+  {ok, [], State}; % TODO
+handle_call({search, season, Data, Options}, State) ->
+  lager:info("[anidb] search season ~p with ~p", [Data, Options]),
+  {ok, [], State}; % TODO
+handle_call({search, cast, Data, Options}, State) ->
+  lager:info("[anidb] search cast ~p with ~p", [Data, Options]),
+  {ok, [], State}; % TODO
+handle_call({search, person, Data, Options}, State) ->
+  lager:info("[anidb] search person ~p with ~p", [Data, Options]),
+  {ok, [], State}; % TODO
+handle_call({search, album, Data, Options}, State) ->
+  lager:info("[anidb] search album ~p with ~p", [Data, Options]),
+  {ok, [], State}; % TODO
+handle_call({search, song, Data, Options}, State) ->
+  lager:info("[anidb] search song ~p with ~p", [Data, Options]),
+  {ok, [], State}; % TODO
 handle_call(_Request, State) ->
-  {ok, ok, State}.
+  {ok, not_available, State}.
 
 handle_info(_Info, State) ->
   {ok, State}.
@@ -36,3 +60,4 @@ code_change(_OldVsn, State, _Extra) ->
 
 terminate(_Args, State) ->
   file:close(State).
+

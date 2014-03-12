@@ -49,12 +49,28 @@ set_key(Interface, Lang) ->
   emdbd_srv:set_key(Interface, Lang).
 
 % Search by name
-search(Name) ->
-  search(Name, []).
+% Tuple = {movie, {name, Name}} | 
+%         {movie, {id, ID}} |
+%         {tv, {name, Name}}
+%         {tv, {id, ID}}
+%         {season, {tv, ID}, {season, Num}}
+%         {cast, {movie, ID}}
+%         {cast, {tv, ID}}
+%         {cast, {tv, ID}, {season, Num}}
+%         {cast, {tv, ID}, {season, Num}, {episode, Ep}}
+%         {person, {name, Name}}
+%         {person, {id, ID}}
+%         {album, {name, Name}}
+%         {album, {id, ID}}
+%         {song, {name, Name}}
+%         {song, {id, ID}}
+search(Tuple) when is_tuple(Tuple) ->
+  search(Tuple, []).
 
 % Search by name with options
-search(Name, Options) ->
-  emdbd_srv:search(Name, Options).
+search(Tuple, Options) when is_tuple(Tuple), is_list(Options) ->
+  [Type|Data] = [element(I,Tuple) || I <- lists:seq(1,tuple_size(Tuple))],
+  emdbd_srv:search(Type, Data, Options).
 
 % Download the URL in File
 download_image(Url, File) ->

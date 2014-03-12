@@ -29,11 +29,29 @@ handle_call({language, Lang}, State) ->
   {ok, ok, lists:keystore(language, 1, State, {language, Lang})};
 handle_call({key, Key}, State) ->
   {ok, ok, lists:keystore(key, 1, State, {key, Key})};
-handle_call({search, Name, Options}, State) ->
-  lager:info("[themoviedb] search ~p with ~p", [Name, Options]),
-  {ok, do_search(Name, Options, State), State};
+handle_call({search, movie, Data, Options}, State) ->
+  lager:info("[themoviedb] search movie ~p with ~p", [Data, Options]),
+  {ok, search_movie(Data, Options, State), State};
+handle_call({search, tv, Data, Options}, State) ->
+  lager:info("[themoviedb] search tv ~p with ~p", [Data, Options]),
+  {ok, [], State}; % TODO
+handle_call({search, season, Data, Options}, State) ->
+  lager:info("[themoviedb] search season ~p with ~p", [Data, Options]),
+  {ok, [], State}; % TODO
+handle_call({search, cast, Data, Options}, State) ->
+  lager:info("[themoviedb] search cast ~p with ~p", [Data, Options]),
+  {ok, [], State}; % TODO
+handle_call({search, person, Data, Options}, State) ->
+  lager:info("[themoviedb] search person ~p with ~p", [Data, Options]),
+  {ok, [], State}; % TODO
+handle_call({search, album, Data, Options}, State) ->
+  lager:info("[themoviedb] search album ~p with ~p", [Data, Options]),
+  {ok, not_available, State};
+handle_call({search, song, Data, Options}, State) ->
+  lager:info("[themoviedb] search song ~p with ~p", [Data, Options]),
+  {ok, not_available, State};
 handle_call(_Request, State) ->
-  {ok, ok, State}.
+  {ok, not_available, State}.
 
 handle_info(_Info, State) ->
   {ok, State}.
@@ -46,7 +64,7 @@ terminate(_Args, State) ->
 
 % Private
 
-do_search(Name, Options, State) ->
+search_movie({name, Name}, Options, State) ->
   {BaseURL, RequestParams} = lists:foldl(fun({Key, Value}, {BaseURL1, RequestParams1}) ->
           case emdbd_utils:to_atom(Key) of
             base_url -> {Value, RequestParams1};
@@ -61,4 +79,6 @@ do_search(Name, Options, State) ->
     {ok, {{_Version, 200, _ReasonPhrase}, _Headers, Body}} -> 
       Body;
     _ -> []
-  end.
+  end;
+search_movie({id, _ID}, _Options, _State) ->
+  [].
