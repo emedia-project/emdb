@@ -1,0 +1,12 @@
+{application, emdbd, [
+  {description, "Erlang Media Database Driver"},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+    kernel,
+    stdlib,
+    lager
+  ]},
+  {mod, { emdbd_app, []}},
+  {env, []}
+]}.
