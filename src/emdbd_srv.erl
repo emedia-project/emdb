@@ -14,8 +14,10 @@
 
 start_link() ->
   R = gen_event:start({local, emdbd_manager}),
-  {ok, LH} = application:get_env(emdbd, emdbi),
-  [start_interface(H) || H <- LH],
+  case application:get_env(emdbd, emdbi) of
+    {ok, LH} -> [start_interface(H) || H <- LH];
+    _ -> lager:info("[emdbd] No interface started!")
+  end,
   R.
 
 interfaces() ->
