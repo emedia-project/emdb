@@ -4,7 +4,9 @@
   to_atom/1,
   to_list/1,
   keylist_to_params_string/1,
-  levenshtein/2
+  levenshtein/2,
+  key_add_or_replace/3,
+  is_keylist/1
 ]).
 
 to_atom(X) when is_atom(X) ->
@@ -66,3 +68,16 @@ levenshtein_distlist([], _, _, NewDistList, _) ->
 % Calculates the difference between two characters or other values
 dif(C, C) -> 0;
 dif(_, _) -> 1.
+
+key_add_or_replace(_, [], TupleList2) ->
+  TupleList2;
+key_add_or_replace(N, [Tuple|Rest], TupleList2) ->
+  Key = element(N, Tuple),
+  TupleList3 = case lists:keysearch(Key, N, TupleList2) of
+    {value, _} -> lists:keydelete(Key, N, TupleList2);
+    false -> TupleList2
+  end,
+  key_add_or_replace(N, Rest, TupleList3 ++ [Tuple]).
+
+is_keylist(L) when is_list(L) ->
+  lists:all(fun(E) -> is_tuple(E) end, L).

@@ -18,6 +18,24 @@ Erlang Media Database Interface :
 * IMDB (http://www.omdbapi.com/)
 * http://acoustid.org/
 
+## Usage
+
+```
+rr("include/emdb.hrl").
+emdb:start().
+
+% The Movie Database
+emdb:search({movie, {name, "The party"}}, [{only, [themoviedb]}, {language, fr}]).
+emdb:search({movie, {id, 10794}}, [{only, [themoviedb]}]).
+
+% IMDB
+emdb:search({movie, {name, "The party"}}, [{only, [imdb]}]).
+emdb:search({movie, {id, "tt0063415"}}, [{only, [imdb]}]).
+
+% Both
+emdb:search({movie, {name, "The party"}}, [{only, [themoviedb, imdb]}, {language, fr}]).
+```
+
 ## Licence
 
 emdb is available for use under the following license, commonly known as the 3-clause (or "modified") BSD license:
