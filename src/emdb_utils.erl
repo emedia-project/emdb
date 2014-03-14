@@ -1,9 +1,10 @@
--module(emdbd_utils).
+-module(emdb_utils).
 
 -export([
   to_atom/1,
   to_list/1,
   keylist_to_params_string/1,
+  distance/2,
   levenshtein/2,
   key_add_or_replace/3,
   is_keylist/1
@@ -45,6 +46,13 @@ join_string1([Head | []], _Sep, Acc) ->
   [Head | Acc];
 join_string1([Head | Tail], Sep, Acc) ->
   join_string1(Tail, Sep, [Sep, Head | Acc]).
+
+distance(A, B) ->
+  LA = string:to_lower(A),
+  LB = string:to_lower(B),
+  SLA = re:replace(LA, "[^0-9a-z]", "", [global, {return, list}]),
+  SLB = re:replace(LB, "[^0-9a-z]", "", [global, {return, list}]),
+  levenshtein(SLA, SLB).
 
 levenshtein(Samestring, Samestring) -> 0;
 levenshtein(String, []) -> length(String);

@@ -19,7 +19,7 @@
 ]).
 
 init(Args) ->
-  Args1 = emdbd_utils:key_add_or_replace(1, Args, ?DEFAULT_ARGS),
+  Args1 = emdb_utils:key_add_or_replace(1, Args, ?DEFAULT_ARGS),
   {ok, Args1}.
 
 handle_event(_Request, State) ->
@@ -68,12 +68,12 @@ terminate(_Args, State) ->
 
 search_movie([{name, Name}], Options, State) ->
   {BaseURL, RequestParams} = lists:foldl(fun({Key, Value}, {BaseURL1, RequestParams1}) ->
-          case emdbd_utils:to_atom(Key) of
+          case emdb_utils:to_atom(Key) of
             base_url -> {Value, RequestParams1};
             X -> {BaseURL1, [{X, Value}] ++ RequestParams1}
           end
       end, {undefined, []}, State ++ Options ++ [{s, http_uri:encode(Name)}]),
-  URL = BaseURL ++ "?" ++ emdbd_utils:keylist_to_params_string(RequestParams),
+  URL = BaseURL ++ "?" ++ emdb_utils:keylist_to_params_string(RequestParams),
   lager:info("[IMDB] GET ~p", [URL]),
   case httpc:request(URL) of
     {ok, {{_Version, 200, _ReasonPhrase}, _Headers, Body}} -> 
@@ -83,12 +83,12 @@ search_movie([{name, Name}], Options, State) ->
   end;
 search_movie([{id, ID}], Options, State) ->
   {BaseURL, RequestParams} = lists:foldl(fun({Key, Value}, {BaseURL1, RequestParams1}) ->
-          case emdbd_utils:to_atom(Key) of
+          case emdb_utils:to_atom(Key) of
             base_url -> {Value, RequestParams1};
             X -> {BaseURL1, [{X, Value}] ++ RequestParams1}
           end
       end, {undefined, []}, State ++ Options ++ [{i, ID}]),
-  URL = BaseURL ++ "?" ++ emdbd_utils:keylist_to_params_string(RequestParams),
+  URL = BaseURL ++ "?" ++ emdb_utils:keylist_to_params_string(RequestParams),
   lager:info("[IMDB] GET ~p", [URL]),
   case httpc:request(URL) of
     {ok, {{_Version, 200, _ReasonPhrase}, _Headers, Body}} -> 
@@ -101,15 +101,15 @@ to_movie(SearchTerm, List) ->
         Title = proplists:get_value(<<"Title">>, Data),
         Rank = case SearchTerm of
           undefined -> 0;
-          X -> emdbd_utils:levenshtein(X, binary_to_list(Title))
+          X -> emdb_utils:distance(X, binary_to_list(Title))
         end,
         Genres = case proplists:get_value(<<"Genre">>, Data) of
           undefined -> undefined;
           G -> [G]
         end,
         Poster = case proplists:get_value(<<"Poster">>, Data) of
-          undefined -> undefined;
-          P -> binary_to_list(P)
+          P when is_binary(P) -> binary_to_list(P);
+          _ -> undefined
         end,
         case proplists:get_value(<<"Type">>, Data) of
           <<"movie">> ->

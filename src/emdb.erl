@@ -18,7 +18,7 @@
 start() ->
   application:start(inets),
   application:ensure_all_started(lager),
-  application:start(emdbd).
+  application:start(emdb).
 
 % Return the list of loaded interface
 interfaces() ->

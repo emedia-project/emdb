@@ -18,7 +18,7 @@
   ]).
 
 init(Args) ->
-  Args1 = emdbd_utils:key_add_or_replace(1, Args, ?DEFAULT_ARGS),
+  Args1 = emdb_utils:key_add_or_replace(1, Args, ?DEFAULT_ARGS),
   {ok, Args1}.
 
 handle_event(_Request, State) ->
@@ -67,15 +67,15 @@ terminate(_Args, State) ->
 
 search_movie([{name, Name}], Options, State) ->
   {BaseURL, ImageURL, RequestParams} = lists:foldl(fun({Key, Value}, {BaseURL1, ImageURL1, RequestParams1}) ->
-          case emdbd_utils:to_atom(Key) of
+          case emdb_utils:to_atom(Key) of
             base_url -> {Value, ImageURL1, RequestParams1};
             image_url -> {BaseURL1, Value, RequestParams1};
             key -> {BaseURL1, ImageURL1, [{api_key, Value}] ++ RequestParams1};
             X -> {BaseURL1, ImageURL1, [{X, Value}] ++ RequestParams1}
           end
-      end, {undefined, undefined, []}, State ++ emdbd_utils:key_add_or_replace(1, Options, [{page, 1}]) ++ [{query, http_uri:encode(Name)}]),
-  URL = BaseURL ++ "/search/movie?" ++ emdbd_utils:keylist_to_params_string(RequestParams),
-  lager:debug("[TMDB] GET ~p", [URL]),
+      end, {undefined, undefined, []}, State ++ emdb_utils:key_add_or_replace(1, Options, [{page, 1}]) ++ [{query, http_uri:encode(Name)}]),
+  URL = BaseURL ++ "/search/movie?" ++ emdb_utils:keylist_to_params_string(RequestParams),
+  lager:info("[TMDB] GET ~p", [URL]),
   case httpc:request(URL) of 
     {ok, {{_Version, 200, _ReasonPhrase}, _Headers, Body}} -> 
       [
@@ -85,21 +85,21 @@ search_movie([{name, Name}], Options, State) ->
         {<<"total_results">>, _TotalResults}
       ] = jsx:decode(list_to_binary(Body)),
       if
-        Page < TotalPages -> to_movie(Name, ImageURL, ResultList) ++ search_movie([{name, Name}], emdbd_utils:key_add_or_replace(1, [{page, Page + 1}], Options), State);
+        Page < TotalPages -> to_movie(Name, ImageURL, ResultList) ++ search_movie([{name, Name}], emdb_utils:key_add_or_replace(1, [{page, Page + 1}], Options), State);
         true -> to_movie(Name, ImageURL, ResultList)
       end;
     _ -> []
   end;
 search_movie([{id, ID}], Options, State) ->
   {BaseURL, ImageURL, RequestParams} = lists:foldl(fun({Key, Value}, {BaseURL1, ImageURL1, RequestParams1}) ->
-          case emdbd_utils:to_atom(Key) of
+          case emdb_utils:to_atom(Key) of
             base_url -> {Value, ImageURL1, RequestParams1};
             image_url -> {BaseURL1, Value, RequestParams1};
             key -> {BaseURL1, ImageURL1, [{api_key, Value}] ++ RequestParams1};
             X -> {BaseURL1, ImageURL1, [{X, Value}] ++ RequestParams1}
           end
       end, {undefined, undefined, []}, State ++ Options),
-  URL = BaseURL ++ "/movie/" ++ emdbd_utils:to_list(ID) ++ "?" ++ emdbd_utils:keylist_to_params_string(RequestParams),
+  URL = BaseURL ++ "/movie/" ++ emdb_utils:to_list(ID) ++ "?" ++ emdb_utils:keylist_to_params_string(RequestParams),
   lager:debug("[TMDB] GET ~p", [URL]),
   case httpc:request(URL) of 
     {ok, {{_Version, 200, _ReasonPhrase}, _Headers, Body}} -> 
@@ -113,11 +113,19 @@ to_movie(SearchTerm, ImageURL, List) ->
         OriginalTitle = proplists:get_value(<<"original_title">>, Data),
         Rank = case SearchTerm of
           undefined -> 0;
-          X -> emdbd_utils:levenshtein(X, binary_to_list(Title))
+          X -> emdb_utils:distance(X, binary_to_list(Title))
         end,
         OriginalRank = case SearchTerm of
           undefined -> 0;
-          Y -> emdbd_utils:levenshtein(Y, binary_to_list(OriginalTitle))
+          Y -> emdb_utils:distance(Y, binary_to_list(OriginalTitle))
+        end,
+        PosterURL = case proplists:get_value(<<"poster_path">>, Data) of
+          P when is_binary(P) -> ImageURL ++ binary_to_list(P);
+          _ -> undefined
+        end,
+        BackgropURL = case proplists:get_value(<<"backdrop_path">>, Data) of
+          B when is_binary(B) -> ImageURL ++ binary_to_list(B);
+          _ -> undefined
         end,
         AccIn ++ [#movie {
           id = proplists:get_value(<<"id">>, Data),
@@ -126,8 +134,8 @@ to_movie(SearchTerm, ImageURL, List) ->
           original_title = proplists:get_value(<<"original_title">>, Data),
           adult = proplists:get_value(<<"adult">>, Data),
           date = proplists:get_value(<<"release_date">>, Data),
-          poster = ImageURL ++ binary_to_list(proplists:get_value(<<"poster_path">>, Data)),
-          backdrop = ImageURL ++ binary_to_list(proplists:get_value(<<"backdrop_path">>, Data)),
+          poster = PosterURL,
+          backdrop = BackgropURL,
           genres = [],
           tagline = proplists:get_value(<<"tagline">>, Data),
           overview = proplists:get_value(<<"overview">>, Data),

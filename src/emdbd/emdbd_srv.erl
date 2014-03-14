@@ -1,5 +1,7 @@
 -module(emdbd_srv).
 
+-include("../include/emdb.hrl").
+
 -export([
   start_link/0,
   interfaces/0,
@@ -14,7 +16,7 @@
 
 start_link() ->
   R = gen_event:start({local, emdbd_manager}),
-  case application:get_env(emdbd, emdbi) of
+  case application:get_env(emdb, emdbi) of
     {ok, LH} -> [start_interface(H) || H <- LH];
     _ -> lager:info("[emdbd] No interface started!")
   end,
@@ -37,13 +39,19 @@ set_key(Interface, Key) ->
 
 % Options :
 %   * {only, [Interfaces]} : use ontly interfaces in list (will be used in the given order)
+%   * {distance, lt, N} | {distance, gt, M} | {distance, in, {N, M}} : Keep only distances
 %   * {language, Lang} : usgae language Lang
 search(Type, Data, Options) ->
-  {Interfaces1, Options1} = case lists:keytake(only, 1, Options) of
-    {value, {only, Interfaces}, Rest} -> {Interfaces, Rest};
-    false -> {interfaces(), Options}
+  {FetchDistance, Options1} = case lists:keytake(distance, 1, Options) of
+    {value, Tuple, List} -> {Tuple, List};
+    false -> {false, Options}
   end,
-  do_search(Interfaces1, Type, Data, Options1, []).
+  {Interfaces1, Options2} = case lists:keytake(only, 1, Options1) of
+    {value, {only, Interfaces}, Rest} -> {Interfaces, Rest};
+    false -> {interfaces(), Options1}
+  end,
+  Results = do_search(Interfaces1, Type, Data, Options2, []),
+  filter_distance(FetchDistance, Results).
 
 add_interface(Interface) ->
   add_interface(Interface, []).
@@ -66,9 +74,32 @@ do_search([], _, _, _, Results) ->
 do_search([Interface|Rest], Type, Data, Options, Results) ->
   Results1 = case is_loaded(Interface) of
     true -> Results ++ gen_event:call(emdbd_manager, Interface, {search, Type, Data, Options});
-    flase -> Results
+    false -> Results
   end,
   do_search(Rest, Type, Data, Options, Results1).
 
 is_loaded(Interface) ->
   lists:any(fun(E) -> E =:= Interface end, interfaces()).
+
+% Private
+
+filter_distance(false, Data) ->
+  Data;
+filter_distance({distance, Op, Value}, Data) ->
+  lists:foldl(fun(Movie, AccIn) ->
+        #movie{rank = Rank} = Movie,
+        Keep = case Op of
+          eq -> Rank =:= Value;
+          lt -> Rank < Value;
+          le -> Rank =< Value;
+          gt -> Rank > Value;
+          ge -> Rank >= Value;
+          in -> 
+            {Min, Max} = Value,
+            (Rank >= Min) and (Rank =< Max)
+        end,
+        case Keep of
+          true -> AccIn ++ [Movie];
+          false -> AccIn
+        end
+    end, [], Data).

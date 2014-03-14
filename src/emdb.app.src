@@ -1,5 +1,5 @@
-{application, emdbd, [
-  {description, "Erlang Media Database Driver"},
+{application, emdb, [
+  {description, "Erlang Media Database"},
   {vsn, "1"},
   {registered, []},
   {applications, [
