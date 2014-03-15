@@ -99,7 +99,7 @@ search_movie([{id, ID}], Options, State) ->
 to_movie(SearchTerm, List) ->
   lists:foldl(fun(Data, AccIn) ->
         Title = proplists:get_value(<<"Title">>, Data),
-        Rank = case SearchTerm of
+        Distance = case SearchTerm of
           undefined -> 0;
           X -> emdb_utils:distance(X, binary_to_list(Title))
         end,
@@ -124,7 +124,7 @@ to_movie(SearchTerm, List) ->
               genres = Genres,
               tagline = proplists:get_value(<<"Plot">>, Data),
               overview = proplists:get_value(<<"Plot">>, Data),
-              rank = Rank
+              distance = Distance
             }];
           _ -> AccIn
         end

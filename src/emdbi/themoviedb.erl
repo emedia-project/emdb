@@ -111,11 +111,11 @@ to_movie(SearchTerm, ImageURL, List) ->
   lists:foldl(fun(Data, AccIn) ->
         Title = proplists:get_value(<<"title">>, Data),
         OriginalTitle = proplists:get_value(<<"original_title">>, Data),
-        Rank = case SearchTerm of
+        Distance = case SearchTerm of
           undefined -> 0;
           X -> emdb_utils:distance(X, binary_to_list(Title))
         end,
-        OriginalRank = case SearchTerm of
+        OriginalDistance = case SearchTerm of
           undefined -> 0;
           Y -> emdb_utils:distance(Y, binary_to_list(OriginalTitle))
         end,
@@ -139,6 +139,6 @@ to_movie(SearchTerm, ImageURL, List) ->
           genres = [],
           tagline = proplists:get_value(<<"tagline">>, Data),
           overview = proplists:get_value(<<"overview">>, Data),
-          rank = min(Rank, OriginalRank)
+          distance = min(Distance, OriginalDistance)
         }]
     end, [], List).

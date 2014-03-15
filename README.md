@@ -17,6 +17,23 @@ Erlang Media Database Interface :
 * http://www.serienjunkies.de/
 * IMDB (http://www.omdbapi.com/)
 * http://acoustid.org/
+* http://developer.rottentomatoes.com/docs/read/Home
+
+### The movie database
+
+### IMDB
+
+### AniDB
+
+### TV Rage
+
+[acces](http://api.tvrage.com/)
+
+
+
+### Rotten Tomatoes
+
+[form](http://www.rottentomatoes.com/help_desk/licensing/#usageRequestForm)
 
 ## Usage
 

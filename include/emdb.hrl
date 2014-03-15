@@ -10,5 +10,5 @@
     genres, 
     tagline,
     overview,
-    rank
+    distance
   }).

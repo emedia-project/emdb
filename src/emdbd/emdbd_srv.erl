@@ -41,17 +41,30 @@ set_key(Interface, Key) ->
 %   * {only, [Interfaces]} : use ontly interfaces in list (will be used in the given order)
 %   * {distance, lt, N} | {distance, gt, M} | {distance, in, {N, M}} : Keep only distances
 %   * {language, Lang} : usgae language Lang
+%   * {sort, Field}
 search(Type, Data, Options) ->
   {FetchDistance, Options1} = case lists:keytake(distance, 1, Options) of
-    {value, Tuple, List} -> {Tuple, List};
+    {value, Tuple, List1} -> {Tuple, List1};
     false -> {false, Options}
   end,
   {Interfaces1, Options2} = case lists:keytake(only, 1, Options1) of
     {value, {only, Interfaces}, Rest} -> {Interfaces, Rest};
     false -> {interfaces(), Options1}
   end,
-  Results = do_search(Interfaces1, Type, Data, Options2, []),
-  filter_distance(FetchDistance, Results).
+  {SortField, Options3} = case lists:keytake(sort, 1, Options2) of
+    {value, {sort, Field}, List2} -> {Field, List2};
+    false -> {false, Options2}
+  end,
+  Results = do_search(Interfaces1, Type, Data, Options3, []),
+  Results1 = case Type of
+    movie -> filter_distance_movie(FetchDistance, Results);
+    _ -> Results %% TODO
+  end,
+  Results2 = case Type of
+    movie -> sort_movie(SortField, Results1);
+    _ -> Results1 %% TODO
+  end,
+  Results2.
 
 add_interface(Interface) ->
   add_interface(Interface, []).
@@ -83,23 +96,38 @@ is_loaded(Interface) ->
 
 % Private
 
-filter_distance(false, Data) ->
+filter_distance_movie(false, Data) ->
   Data;
-filter_distance({distance, Op, Value}, Data) ->
+filter_distance_movie({distance, Op, Value}, Data) ->
   lists:foldl(fun(Movie, AccIn) ->
-        #movie{rank = Rank} = Movie,
+        #movie{distance = Distance} = Movie,
         Keep = case Op of
-          eq -> Rank =:= Value;
-          lt -> Rank < Value;
-          le -> Rank =< Value;
-          gt -> Rank > Value;
-          ge -> Rank >= Value;
+          eq -> Distance =:= Value;
+          lt -> Distance < Value;
+          le -> Distance =< Value;
+          gt -> Distance > Value;
+          ge -> Distance >= Value;
           in -> 
             {Min, Max} = Value,
-            (Rank >= Min) and (Rank =< Max)
+            (Distance >= Min) and (Distance =< Max)
         end,
         case Keep of
           true -> AccIn ++ [Movie];
           false -> AccIn
         end
     end, [], Data).
+
+sort_movie(false, Data) ->
+  Data;
+sort_movie(Field, Data) ->
+  lists:sort(fun(A, B) ->
+        get_movie_value(Field, A) < get_movie_value(Field, B)
+    end, Data).
+
+get_movie_value(F, R) -> element(movie_field_index(F), R).
+% set_movie_value(F, R, V) -> setelement(movie_field_index(F), R, V).
+
+movie_field_index(F) -> index(F, record_info(fields, movie), 2).
+
+index(M, [M|_], I) -> I;
+index(M, [_|T], I) -> index(M, T, I+1).
