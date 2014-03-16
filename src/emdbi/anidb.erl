@@ -53,7 +53,7 @@ handle_call({search, song, Data, Options}, State) ->
   lager:info("[anidb] search song ~p with ~p", [Data, Options]),
   {ok, [], State}; % TODO
 handle_call(_Request, State) ->
-  {ok, not_available, State}.
+  {ok, [], State}.
 
 handle_info(_Info, State) ->
   {ok, State}.

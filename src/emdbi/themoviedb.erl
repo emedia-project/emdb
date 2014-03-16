@@ -34,8 +34,8 @@ handle_call({search, movie, Data, Options}, State) ->
   lager:debug("[TMDB] search movie ~p with ~p", [Data, Options]),
   {ok, search_movie(Data, Options, State), State};
 handle_call({search, tv, Data, Options}, State) ->
-  lager:info("[themoviedb] search tv ~p with ~p", [Data, Options]),
-  {ok, [], State}; % TODO
+  lager:info("[TMDB] search tv ~p with ~p", [Data, Options]),
+  {ok, search_tv(Data, Options, State), State};
 handle_call({search, season, Data, Options}, State) ->
   lager:info("[themoviedb] search season ~p with ~p", [Data, Options]),
   {ok, [], State}; % TODO
@@ -50,12 +50,12 @@ handle_call({search, person, Data, Options}, State) ->
   {ok, [], State}; % TODO
 handle_call({search, album, Data, Options}, State) ->
   lager:debug("[TMDB] search album ~p with ~p", [Data, Options]),
-  {ok, not_available, State};
+  {ok, [], State};
 handle_call({search, song, Data, Options}, State) ->
   lager:debug("[TMDB] search song ~p with ~p", [Data, Options]),
-  {ok, not_available, State};
+  {ok, [], State};
 handle_call(_Request, State) ->
-  {ok, not_available, State}.
+  {ok, [], State}.
 
 handle_info(_Info, State) ->
   {ok, State}.
@@ -71,14 +71,11 @@ terminate(_Args, State) ->
 % -- Movie --
 
 search_movie([{name, Name}], Options, State) ->
-  {BaseURL, ImageURL, RequestParams} = lists:foldl(fun({Key, Value}, {BaseURL1, ImageURL1, RequestParams1}) ->
-          case emdb_utils:to_atom(Key) of
-            base_url -> {Value, ImageURL1, RequestParams1};
-            image_url -> {BaseURL1, Value, RequestParams1};
-            key -> {BaseURL1, ImageURL1, [{api_key, Value}] ++ RequestParams1};
-            X -> {BaseURL1, ImageURL1, [{X, Value}] ++ RequestParams1}
-          end
-      end, {undefined, undefined, []}, State ++ emdb_utils:key_add_or_replace(1, Options, [{page, 1}]) ++ [{query, http_uri:encode(Name)}]),
+  {BaseURL, ImageURL, RequestParams} = parse_options(
+    State ++ 
+    emdb_utils:key_add_or_replace(1, Options, [{page, 1}]) ++ 
+    [{query, http_uri:encode(Name)}]
+  ),
   URL = BaseURL ++ "/search/movie?" ++ emdb_utils:keylist_to_params_string(RequestParams),
   lager:info("[TMDB] GET ~p", [URL]),
   case httpc:request(URL) of 
@@ -96,14 +93,9 @@ search_movie([{name, Name}], Options, State) ->
     _ -> []
   end;
 search_movie([{id, ID}], Options, State) ->
-  {BaseURL, ImageURL, RequestParams} = lists:foldl(fun({Key, Value}, {BaseURL1, ImageURL1, RequestParams1}) ->
-          case emdb_utils:to_atom(Key) of
-            base_url -> {Value, ImageURL1, RequestParams1};
-            image_url -> {BaseURL1, Value, RequestParams1};
-            key -> {BaseURL1, ImageURL1, [{api_key, Value}] ++ RequestParams1};
-            X -> {BaseURL1, ImageURL1, [{X, Value}] ++ RequestParams1}
-          end
-      end, {undefined, undefined, []}, State ++ Options),
+  {BaseURL, ImageURL, RequestParams} = parse_options(
+    State ++ Options
+  ),
   URL = BaseURL ++ "/movie/" ++ emdb_utils:to_list(ID) ++ "?" ++ emdb_utils:keylist_to_params_string(RequestParams),
   lager:debug("[TMDB] GET ~p", [URL]),
   case httpc:request(URL) of 
@@ -159,3 +151,108 @@ to_movie(SearchTerm, ImageURL, List) ->
     end, [], List).
 
 % -- TV --
+
+search_tv([{name, Name}], Options, State) ->
+  {BaseURL, ImageURL, RequestParams} = parse_options(
+    State ++ 
+    emdb_utils:key_add_or_replace(1, Options, [{page, 1}]) ++ 
+    [{query, http_uri:encode(Name)}]
+  ),
+  URL = BaseURL ++ "/search/tv?" ++ emdb_utils:keylist_to_params_string(RequestParams),
+  lager:info("[TMDB] GET ~p", [URL]),
+  case httpc:request(URL) of 
+    {ok, {{_Version, 200, _ReasonPhrase}, _Headers, Body}} -> 
+      [
+        {<<"page">>, Page},
+        {<<"results">>, ResultList},
+        {<<"total_pages">>, TotalPages},
+        {<<"total_results">>, _TotalResults}
+      ] = jsx:decode(list_to_binary(Body)),
+      if
+        Page < TotalPages -> to_tv(Name, ImageURL, ResultList) ++ search_tv([{name, Name}], emdb_utils:key_add_or_replace(1, [{page, Page + 1}], Options), State);
+        true -> to_tv(Name, ImageURL, ResultList)
+      end;
+    _ -> []
+  end;
+search_tv([{id, ID}], Options, State) ->
+  {BaseURL, ImageURL, RequestParams} = parse_options(
+    State ++ Options
+  ),
+  URL = BaseURL ++ "/tv/" ++ emdb_utils:to_list(ID) ++ "?" ++ emdb_utils:keylist_to_params_string(RequestParams),
+  lager:debug("[TMDB] GET ~p", [URL]),
+  case httpc:request(URL) of 
+    {ok, {{_Version, 200, _ReasonPhrase}, _Headers, Body}} -> 
+      to_tv(undefined, ImageURL, [jsx:decode(list_to_binary(Body))]);
+    _ -> []
+  end.
+
+to_tv(SearchTerm, ImageURL, Result) ->
+  lists:foldl(fun(TV, AccIn) ->
+      Title = proplists:get_value(<<"name">>, TV),
+      OriginalTitle = proplists:get_value(<<"original_name">>, TV),
+      Distance = case SearchTerm of
+        undefined -> 0;
+        X -> emdb_utils:distance(X, binary_to_list(Title))
+      end,
+      OriginalDistance = case SearchTerm of
+        undefined -> 0;
+        Y -> emdb_utils:distance(Y, binary_to_list(OriginalTitle))
+      end,
+      PosterURL = case proplists:get_value(<<"poster_path">>, TV) of
+        P when is_binary(P) -> ImageURL ++ binary_to_list(P);
+        _ -> undefined
+      end,
+      BackgropURL = case proplists:get_value(<<"backdrop_path">>, TV) of
+        B when is_binary(B) -> ImageURL ++ binary_to_list(B);
+        _ -> undefined
+      end,
+      Genres = case proplists:get_value(<<"genres">>, TV) of
+        undefined -> [];
+        Genres1 -> 
+          lists:foldl(fun(Genre, AccIn1) ->
+              case lists:keyfind(<<"name">>, 1, Genre) of
+                {<<"name">>, GenreName} -> AccIn1 ++ [GenreName];
+                _ -> AccIn1
+              end
+            end, [], Genres1)
+      end,
+      Networks = case proplists:get_value(<<"networks">>, TV) of
+        undefined -> [];
+        Networks1 -> 
+          lists:foldl(fun(Network, AccIn2) ->
+              case lists:keyfind(<<"name">>, 1, Network) of
+                {<<"name">>, NetworkName} -> AccIn2 ++ [NetworkName];
+                _ -> AccIn2
+              end
+            end, [], Networks1)
+      end,
+      AccIn ++ [#tv {
+          id = proplists:get_value(<<"id">>, TV),
+          source = themoviedb,
+          title = Title,
+          original_title = OriginalTitle,
+          adult = undefined, %% NA
+          date = proplists:get_value(<<"first_air_date">>, TV),
+          poster = PosterURL,
+          backdrop = BackgropURL,
+          genres = Genres,
+          tagline = undefined, %% NA
+          overview = proplists:get_value(<<"overview">>, TV),
+          networks = Networks,
+          seasons = proplists:get_value(<<"number_of_seasons">>, TV),
+          episodes = proplists:get_value(<<"number_of_episodes">>, TV),
+          distance = min(Distance, OriginalDistance)
+        }]
+    end, [], Result).
+
+% -- Common --
+
+parse_options(Options) ->
+  lists:foldl(fun({Key, Value}, {BaseURL1, ImageURL1, RequestParams1}) ->
+          case emdb_utils:to_atom(Key) of
+            base_url -> {Value, ImageURL1, RequestParams1};
+            image_url -> {BaseURL1, Value, RequestParams1};
+            key -> {BaseURL1, ImageURL1, [{api_key, Value}] ++ RequestParams1};
+            X -> {BaseURL1, ImageURL1, [{X, Value}] ++ RequestParams1}
+          end
+      end, {undefined, undefined, []}, Options).

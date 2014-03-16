@@ -56,7 +56,7 @@ handle_call({search, song, Data, Options}, State) ->
   lager:info("[OMDB] search song ~p with ~p", [Data, Options]),
   {ok, [], State};
 handle_call(_Request, State) ->
-  {ok, not_available, State}.
+  {ok, [], State}.
 
 handle_info(_Info, State) ->
   {ok, State}.
