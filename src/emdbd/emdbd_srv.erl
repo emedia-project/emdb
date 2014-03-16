@@ -39,7 +39,7 @@ set_key(Interface, Key) ->
 
 % Options :
 %   * {only, [Interfaces]} : use ontly interfaces in list (will be used in the given order)
-%   * {distance, lt, N} | {distance, gt, M} | {distance, in, {N, M}} : Keep only distances
+%   * {distance, eq, N} | {distance, le, N} | {distance, lt, N} | {distance, ge, N} | {distance, gt, M} | {distance, in, {N, M}} : Keep only distances
 %   * {language, Lang} : usgae language Lang
 %   * {sort, Field}
 search(Type, Data, Options) ->
