@@ -37,6 +37,9 @@ handle_call({search, tv, Data, Options}, State) ->
 handle_call({search, season, Data, Options}, State) ->
   lager:info("[tvrage] search season ~p with ~p", [Data, Options]),
   {ok, [], State}; % TODO
+handle_call({search, episode, Data, Options}, State) ->
+  lager:info("[tvrage] search season ~p with ~p", [Data, Options]),
+  {ok, [], State}; % TODO
 handle_call({search, cast, Data, Options}, State) ->
   lager:info("[tvrage] search cast ~p with ~p", [Data, Options]),
   {ok, [], State}; % TODO

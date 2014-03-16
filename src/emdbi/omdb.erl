@@ -40,6 +40,9 @@ handle_call({search, tv, Data, Options}, State) ->
 handle_call({search, season, Data, Options}, State) ->
   lager:info("[omdb] search season ~p with ~p", [Data, Options]),
   {ok, [], State}; % TODO
+handle_call({search, episode, Data, Options}, State) ->
+  lager:info("[omdb] search season ~p with ~p", [Data, Options]),
+  {ok, [], State}; % TODO
 handle_call({search, cast, Data, Options}, State) ->
   lager:info("[omdb] search cast ~p with ~p", [Data, Options]),
   {ok, [], State}; % TODO
@@ -47,11 +50,11 @@ handle_call({search, person, Data, Options}, State) ->
   lager:info("[omdb] search person ~p with ~p", [Data, Options]),
   {ok, [], State}; % TODO
 handle_call({search, album, Data, Options}, State) ->
-  lager:info("[omdb] search album ~p with ~p", [Data, Options]),
-  {ok, [], State}; % TODO
+  lager:info("[OMDB] search album ~p with ~p", [Data, Options]),
+  {ok, [], State};
 handle_call({search, song, Data, Options}, State) ->
-  lager:info("[omdb] search song ~p with ~p", [Data, Options]),
-  {ok, [], State}; % TODO
+  lager:info("[OMDB] search song ~p with ~p", [Data, Options]),
+  {ok, [], State};
 handle_call(_Request, State) ->
   {ok, not_available, State}.
 
@@ -77,8 +80,10 @@ search_movie([{name, Name}], Options, State) ->
   lager:info("[OMDB] GET ~p", [URL]),
   case httpc:request(URL) of
     {ok, {{_Version, 200, _ReasonPhrase}, _Headers, Body}} -> 
-      [{<<"Search">>, ResultList}] = jsx:decode(list_to_binary(Body)),
-      to_movie(Name, ResultList);
+      case jsx:decode(list_to_binary(Body)) of
+        [{<<"Search">>, ResultList}] -> to_movie(Name, ResultList);
+        _ -> []
+      end;
     _ -> []
   end;
 search_movie([{id, ID}], Options, State) ->

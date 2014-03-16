@@ -24,6 +24,7 @@
                        {tv, {name, name()}} |
                        {tv, {id, id()}} |
                        {season, {tv, id()}, {season, num()}} |
+                       {episode, {tv, id()}, {season, num()}, {episode, num()}} |
                        {cast, {movie, id()}} |
                        {cast, {tv, id()}} |
                        {cast, {tv, id()}, {season, num()}} |
@@ -82,6 +83,7 @@ set_key(Interface, Key) ->
 %         {tv, {name, Name}}
 %         {tv, {id, ID}}
 %         {season, {tv, ID}, {season, Num}}
+%         {episode, {tv, ID}, {season, Num}, {episode, Num}}
 %         {cast, {movie, ID}}
 %         {cast, {tv, ID}}
 %         {cast, {tv, ID}, {season, Num}}

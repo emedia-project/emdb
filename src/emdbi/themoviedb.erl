@@ -39,6 +39,9 @@ handle_call({search, tv, Data, Options}, State) ->
 handle_call({search, season, Data, Options}, State) ->
   lager:info("[themoviedb] search season ~p with ~p", [Data, Options]),
   {ok, [], State}; % TODO
+handle_call({search, episode, Data, Options}, State) ->
+  lager:info("[themoviedb] search season ~p with ~p", [Data, Options]),
+  {ok, [], State}; % TODO
 handle_call({search, cast, Data, Options}, State) ->
   lager:info("[themoviedb] search cast ~p with ~p", [Data, Options]),
   {ok, [], State}; % TODO
@@ -46,10 +49,10 @@ handle_call({search, person, Data, Options}, State) ->
   lager:info("[themoviedb] search person ~p with ~p", [Data, Options]),
   {ok, [], State}; % TODO
 handle_call({search, album, Data, Options}, State) ->
-  lager:info("[themoviedb] search album ~p with ~p", [Data, Options]),
+  lager:debug("[TMDB] search album ~p with ~p", [Data, Options]),
   {ok, not_available, State};
 handle_call({search, song, Data, Options}, State) ->
-  lager:info("[themoviedb] search song ~p with ~p", [Data, Options]),
+  lager:debug("[TMDB] search song ~p with ~p", [Data, Options]),
   {ok, not_available, State};
 handle_call(_Request, State) ->
   {ok, not_available, State}.
@@ -64,6 +67,8 @@ terminate(_Args, State) ->
   file:close(State).
 
 % Private
+
+% -- Movie --
 
 search_movie([{name, Name}], Options, State) ->
   {BaseURL, ImageURL, RequestParams} = lists:foldl(fun({Key, Value}, {BaseURL1, ImageURL1, RequestParams1}) ->
@@ -152,3 +157,5 @@ to_movie(SearchTerm, ImageURL, List) ->
         distance = min(Distance, OriginalDistance)
       }]
     end, [], List).
+
+% -- TV --
