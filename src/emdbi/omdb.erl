@@ -1,4 +1,4 @@
--module(imdb).
+-module(omdb).
 -behaviour(gen_event).
 
 -include("../include/emdb.hrl").
@@ -32,25 +32,25 @@ handle_call({language, Lang}, State) ->
 handle_call({key, Key}, State) ->
   {ok, ok, lists:keystore(key, 1, State, {key, Key})};
 handle_call({search, movie, Data, Options}, State) ->
-  lager:info("[IMDB] search movie ~p with ~p", [Data, Options]),
+  lager:info("[OMDB] search movie ~p with ~p", [Data, Options]),
   {ok, search_movie(Data, Options, State), State};
 handle_call({search, tv, Data, Options}, State) ->
-  lager:info("[imdb] search tv ~p with ~p", [Data, Options]),
+  lager:info("[omdb] search tv ~p with ~p", [Data, Options]),
   {ok, [], State}; % TODO
 handle_call({search, season, Data, Options}, State) ->
-  lager:info("[imdb] search season ~p with ~p", [Data, Options]),
+  lager:info("[omdb] search season ~p with ~p", [Data, Options]),
   {ok, [], State}; % TODO
 handle_call({search, cast, Data, Options}, State) ->
-  lager:info("[imdb] search cast ~p with ~p", [Data, Options]),
+  lager:info("[omdb] search cast ~p with ~p", [Data, Options]),
   {ok, [], State}; % TODO
 handle_call({search, person, Data, Options}, State) ->
-  lager:info("[imdb] search person ~p with ~p", [Data, Options]),
+  lager:info("[omdb] search person ~p with ~p", [Data, Options]),
   {ok, [], State}; % TODO
 handle_call({search, album, Data, Options}, State) ->
-  lager:info("[imdb] search album ~p with ~p", [Data, Options]),
+  lager:info("[omdb] search album ~p with ~p", [Data, Options]),
   {ok, [], State}; % TODO
 handle_call({search, song, Data, Options}, State) ->
-  lager:info("[imdb] search song ~p with ~p", [Data, Options]),
+  lager:info("[omdb] search song ~p with ~p", [Data, Options]),
   {ok, [], State}; % TODO
 handle_call(_Request, State) ->
   {ok, not_available, State}.
@@ -74,7 +74,7 @@ search_movie([{name, Name}], Options, State) ->
           end
       end, {undefined, []}, State ++ Options ++ [{s, http_uri:encode(Name)}]),
   URL = BaseURL ++ "?" ++ emdb_utils:keylist_to_params_string(RequestParams),
-  lager:info("[IMDB] GET ~p", [URL]),
+  lager:info("[OMDB] GET ~p", [URL]),
   case httpc:request(URL) of
     {ok, {{_Version, 200, _ReasonPhrase}, _Headers, Body}} -> 
       [{<<"Search">>, ResultList}] = jsx:decode(list_to_binary(Body)),
@@ -89,7 +89,7 @@ search_movie([{id, ID}], Options, State) ->
           end
       end, {undefined, []}, State ++ Options ++ [{i, ID}]),
   URL = BaseURL ++ "?" ++ emdb_utils:keylist_to_params_string(RequestParams),
-  lager:info("[IMDB] GET ~p", [URL]),
+  lager:info("[OMDB] GET ~p", [URL]),
   case httpc:request(URL) of
     {ok, {{_Version, 200, _ReasonPhrase}, _Headers, Body}} -> 
       to_movie(undefined, [jsx:decode(list_to_binary(Body))]);
@@ -104,7 +104,7 @@ to_movie(SearchTerm, List) ->
           X -> emdb_utils:distance(X, binary_to_list(Title))
         end,
         Genres = case proplists:get_value(<<"Genre">>, Data) of
-          undefined -> undefined;
+          undefined -> [];
           G -> [G]
         end,
         Poster = case proplists:get_value(<<"Poster">>, Data) of
@@ -115,7 +115,7 @@ to_movie(SearchTerm, List) ->
           <<"movie">> ->
             AccIn ++ [#movie {
               id = proplists:get_value(<<"imdbID">>, Data),
-              source = imdb,
+              source = omdb,
               title = Title,
               original_title = Title,
               adult = undefined,

@@ -109,36 +109,46 @@ search_movie([{id, ID}], Options, State) ->
 
 to_movie(SearchTerm, ImageURL, List) ->
   lists:foldl(fun(Data, AccIn) ->
-        Title = proplists:get_value(<<"title">>, Data),
-        OriginalTitle = proplists:get_value(<<"original_title">>, Data),
-        Distance = case SearchTerm of
-          undefined -> 0;
-          X -> emdb_utils:distance(X, binary_to_list(Title))
-        end,
-        OriginalDistance = case SearchTerm of
-          undefined -> 0;
-          Y -> emdb_utils:distance(Y, binary_to_list(OriginalTitle))
-        end,
-        PosterURL = case proplists:get_value(<<"poster_path">>, Data) of
-          P when is_binary(P) -> ImageURL ++ binary_to_list(P);
-          _ -> undefined
-        end,
-        BackgropURL = case proplists:get_value(<<"backdrop_path">>, Data) of
-          B when is_binary(B) -> ImageURL ++ binary_to_list(B);
-          _ -> undefined
-        end,
-        AccIn ++ [#movie {
-          id = proplists:get_value(<<"id">>, Data),
-          source = themoviedb,
-          title = proplists:get_value(<<"title">>, Data),
-          original_title = proplists:get_value(<<"original_title">>, Data),
-          adult = proplists:get_value(<<"adult">>, Data),
-          date = proplists:get_value(<<"release_date">>, Data),
-          poster = PosterURL,
-          backdrop = BackgropURL,
-          genres = [],
-          tagline = proplists:get_value(<<"tagline">>, Data),
-          overview = proplists:get_value(<<"overview">>, Data),
-          distance = min(Distance, OriginalDistance)
-        }]
+      Title = proplists:get_value(<<"title">>, Data),
+      OriginalTitle = proplists:get_value(<<"original_title">>, Data),
+      Distance = case SearchTerm of
+        undefined -> 0;
+        X -> emdb_utils:distance(X, binary_to_list(Title))
+      end,
+      OriginalDistance = case SearchTerm of
+        undefined -> 0;
+        Y -> emdb_utils:distance(Y, binary_to_list(OriginalTitle))
+      end,
+      PosterURL = case proplists:get_value(<<"poster_path">>, Data) of
+        P when is_binary(P) -> ImageURL ++ binary_to_list(P);
+        _ -> undefined
+      end,
+      BackgropURL = case proplists:get_value(<<"backdrop_path">>, Data) of
+        B when is_binary(B) -> ImageURL ++ binary_to_list(B);
+        _ -> undefined
+      end,
+      Genres = case proplists:get_value(<<"genres">>, Data) of
+        undefined -> [];
+        Genres1 -> 
+          lists:foldl(fun(Genre, AccIn1) ->
+              case lists:keyfind(<<"name">>, 1, Genre) of
+                {<<"name">>, GenreName} -> AccIn1 ++ [GenreName];
+                _ -> AccIn1
+              end
+            end, [], Genres1)
+      end,
+      AccIn ++ [#movie {
+        id = proplists:get_value(<<"id">>, Data),
+        source = themoviedb,
+        title = proplists:get_value(<<"title">>, Data),
+        original_title = proplists:get_value(<<"original_title">>, Data),
+        adult = proplists:get_value(<<"adult">>, Data),
+        date = proplists:get_value(<<"release_date">>, Data),
+        poster = PosterURL,
+        backdrop = BackgropURL,
+        genres = Genres,
+        tagline = proplists:get_value(<<"tagline">>, Data),
+        overview = proplists:get_value(<<"overview">>, Data),
+        distance = min(Distance, OriginalDistance)
+      }]
     end, [], List).

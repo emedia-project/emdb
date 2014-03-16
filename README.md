@@ -15,13 +15,13 @@ Erlang Media Database Interface :
 * http://anidb.net/
 * http://www.tvrage.com/
 * http://www.serienjunkies.de/
-* IMDB (http://www.omdbapi.com/)
+* OMDB (http://www.omdbapi.com/)
 * http://acoustid.org/
 * http://developer.rottentomatoes.com/docs/read/Home
 
 ### The movie database
 
-### IMDB
+### OMDB
 
 ### AniDB
 
@@ -45,12 +45,12 @@ emdb:start().
 emdb:search({movie, {name, "The party"}}, [{only, [themoviedb]}, {language, fr}]).
 emdb:search({movie, {id, 10794}}, [{only, [themoviedb]}]).
 
-% IMDB
-emdb:search({movie, {name, "The party"}}, [{only, [imdb]}]).
-emdb:search({movie, {id, "tt0063415"}}, [{only, [imdb]}]).
+% OMDB
+emdb:search({movie, {name, "The party"}}, [{only, [omdb]}]).
+emdb:search({movie, {id, "tt0063415"}}, [{only, [omdb]}]).
 
 % Both
-emdb:search({movie, {name, "The party"}}, [{only, [themoviedb, imdb]}, {language, fr}]).
+emdb:search({movie, {name, "The party"}}, [{only, [themoviedb, omdb]}, {language, fr}]).
 ```
 
 ## Licence
