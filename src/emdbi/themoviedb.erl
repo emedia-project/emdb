@@ -37,11 +37,11 @@ handle_call({search, tv, Data, Options}, State) ->
   lager:debug("[TMDB] search tv ~p with ~p", [Data, Options]),
   {ok, search_tv(Data, Options, State), State};
 handle_call({search, season, Data, Options}, State) ->
-  lager:info("[TMDB] search season ~p with ~p", [Data, Options]),
+  lager:debug("[TMDB] search season ~p with ~p", [Data, Options]),
   {ok, search_season(Data, Options, State), State};
 handle_call({search, episode, Data, Options}, State) ->
-  lager:info("[themoviedb] search season ~p with ~p", [Data, Options]),
-  {ok, [], State}; % TODO
+  lager:info("[TMDB] search episode ~p with ~p", [Data, Options]),
+  {ok, search_episode(Data, Options, State), State};
 handle_call({search, cast, Data, Options}, State) ->
   lager:info("[themoviedb] search cast ~p with ~p", [Data, Options]),
   {ok, [], State}; % TODO
@@ -245,10 +245,9 @@ to_tv(SearchTerm, ImageURL, Result) ->
         }]
     end, [], Result).
 
-% -- Episode --
+% -- Season --
 
 search_season(Data, Options, State) ->
-  lager:info("DATA = ~p", [Data]),
   case lists:keyfind(tv, 1, Data) of
     {tv, TVID} -> 
       case lists:keyfind(season, 1, Data) of
@@ -290,6 +289,53 @@ to_season(TVID, Num, ImageURL, Results) ->
             overview = proplists:get_value(<<"overview">>, Season),
             season = Num,
             episodes = Episodes
+          }]
+    end, [], Results).
+
+% -- Episode --
+
+search_episode(Data, Options, State) ->
+  case lists:keyfind(tv, 1, Data) of
+    {tv, TVID} -> 
+      case lists:keyfind(season, 1, Data) of
+        {season, SeasonNum} -> 
+          case lists:keyfind(episode, 1, Data) of
+            {episode, EpisodeNum} ->
+              {BaseURL, ImageURL, RequestParams} = parse_options(
+                State ++ Options
+              ),
+              URL = BaseURL ++ "/tv/" ++ emdb_utils:to_list(TVID) ++ "/season/" ++ emdb_utils:to_list(SeasonNum) ++ "/episode/" ++ emdb_utils:to_list(EpisodeNum) ++ "?" ++ emdb_utils:keylist_to_params_string(RequestParams),
+              lager:debug("[TMDB] GET ~p", [URL]),
+              case httpc:request(URL) of 
+                {ok, {{_Version, 200, _ReasonPhrase}, _Headers, Body}} -> 
+                  to_episode(TVID, SeasonNum, EpisodeNum, ImageURL, [jsx:decode(list_to_binary(Body))]);
+                _ -> []
+              end;
+            _ -> []
+          end;
+        _ -> []
+      end;
+    _ -> []
+  end.
+
+to_episode(TVID, SeasonNum, EpisodeNum, ImageURL, Results) ->
+  lists:foldl(fun(Episode, AccIn) ->
+        PosterURL = case proplists:get_value(<<"still_path">>, Episode) of
+          P when is_binary(P) -> ImageURL ++ binary_to_list(P);
+          _ -> undefined
+        end,
+        AccIn ++ [#episode{
+            id = proplists:get_value(<<"id">>, Episode),
+            tv_id = TVID,
+            season = SeasonNum,
+            episode = EpisodeNum,
+            source = themoviedb,
+            title = proplists:get_value(<<"name">>, Episode),
+            original_title = undefined,
+            date = proplists:get_value(<<"air_date">>, Episode),
+            poster = PosterURL,
+            backdrop = undefined,
+            overview = proplists:get_value(<<"overview">>, Episode)
           }]
     end, [], Results).
 

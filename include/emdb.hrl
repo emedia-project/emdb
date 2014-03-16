@@ -34,6 +34,7 @@
 -record(season, {
     id,
     tv_id,
+    season,
     source,
     title,
     original_title,
@@ -41,21 +42,19 @@
     poster,
     backdrop,
     overview,
-    season,
     episodes
   }).
 
 -record(episode, {
     id,
-    season_id,
     tv_id,
+    season,
+    episode,
     source,
     title,
     original_title,
     date,
     poster,
     backdrop,
-    overview,
-    number,
-    season
+    overview
   }).
