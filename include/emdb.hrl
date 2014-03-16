@@ -41,7 +41,7 @@
     poster,
     backdrop,
     overview,
-    number,
+    season,
     episodes
   }).
 
